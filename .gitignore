@@ -1,0 +1,61 @@
+# Dependencies
+/node_modules
+/vendor
+
+# Laravel specific
+/public/hot
+/public/storage
+/storage/*.key
+/storage/*.log
+/storage/*.sqlite
+/storage/*.sqlite3
+/storage/*.sqlite-journal
+/storage/*.sqlite3-journal
+/storage/*.sqlite-wal
+/storage/*.sqlite3-wal
+/storage/*.sqlite-shm
+/storage/*.sqlite3-shm
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/storage/logs/*
+/bootstrap/cache/*
+
+# Environment files
+/.env
+/.env.*
+/.env.backup
+/.env.production
+/.phpunit.result.cache
+
+# IDE and Editor files
+/.idea
+/.vscode
+/.fleet
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build files
+/public/build
+/public/mix-manifest.json
+/public/.htaccess
+
+# Testing
+/.phpunit.cache
+/phpunit.xml
