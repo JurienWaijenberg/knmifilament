@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "composer install --no-dev --optimize-autoloader && npm ci && npm run build",
+  "buildCommand": "npm run vercel-build",
   "outputDirectory": "public",
-  "installCommand": "composer install --no-dev --optimize-autoloader && npm ci",
+  "installCommand": "npm ci",
   "framework": null,
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
   "functions": {
     "api/index.php": {
       "runtime": "php8.2",
