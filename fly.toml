@@ -7,6 +7,7 @@ primary_region = "iad"
 [build]
   dockerfile = "Dockerfile"
   builder = "docker"
+  buildpacks = []
 
 [env]
   APP_ENV = "production"
