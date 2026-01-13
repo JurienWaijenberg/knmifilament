@@ -61,32 +61,24 @@ jobs:
           quit
           " || (echo "❌ Connection test failed!" && exit 1)
 
-      - name: 📂 Create directory structure
+      - name: 📂 Create directory if needed
         env:
           SFTP_SERVER: ${{ secrets.FTP_SERVER }}
           SFTP_USER: ${{ secrets.FTP_USERNAME }}
           SFTP_PASS: ${{ secrets.FTP_PASSWORD }}
           SFTP_DIR: ${{ secrets.FTP_SERVER_DIR }}
         run: |
-          echo "📁 Creating directory structure for $SFTP_DIR..."
-          # Remove leading slash and create directories one by one
-          DIR_PATH="${SFTP_DIR#/}"
-          IFS='/' read -ra DIRS <<< "$DIR_PATH"
-          CURRENT_PATH=""
-          for dir in "$${DIRS[@]}"; do
-            if [ -n "$dir" ]; then
-              CURRENT_PATH="$CURRENT_PATH/$dir"
-              echo "Creating $CURRENT_PATH..."
-              lftp -c "
-              set sftp:auto-confirm yes
-              set sftp:connect-program 'ssh -a -x -oStrictHostKeyChecking=no'
-              set net:timeout 30
-              open -u $SFTP_USER,$SFTP_PASS sftp://$SFTP_SERVER
-              cd $CURRENT_PATH 2>/dev/null || (mkdir $CURRENT_PATH && cd $CURRENT_PATH)
-              quit
-              " || true
-            fi
-          done
+          echo "📁 Ensuring directory $SFTP_DIR exists..."
+          lftp -c "
+          set sftp:auto-confirm yes
+          set sftp:connect-program 'ssh -a -x -oStrictHostKeyChecking=no'
+          set net:timeout 30
+          open -u $SFTP_USER,$SFTP_PASS sftp://$SFTP_SERVER
+          cd /subsites || mkdir /subsites
+          cd /subsites
+          cd knmi.waijenbergmedia.nl || mkdir knmi.waijenbergmedia.nl
+          quit
+          " || echo "⚠️ Directory creation attempted"
 
       - name: 📂 Sync files to server via SFTP
         env:
@@ -104,9 +96,9 @@ jobs:
           set net:max-retries 3
           set net:reconnect-interval-base 5
           set net:reconnect-interval-multiplier 1
-          set ftp:list-options -a
           open -u $SFTP_USER,$SFTP_PASS sftp://$SFTP_SERVER
-          cd $SFTP_DIR || (echo "❌ Failed to change to directory $SFTP_DIR" && exit 1)
+          cd /subsites
+          cd knmi.waijenbergmedia.nl
           mirror --reverse \
             --delete \
             --only-newer \
