@@ -41,30 +41,21 @@ jobs:
         run: |
           rm -rf node_modules
 
-      - name: 📂 Sync files to server
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/.env
-            **/.env.*
-            **/tests/**
-            **/storage/logs/**
-            **/storage/framework/cache/**
-            **/storage/framework/sessions/**
-            **/storage/framework/views/**
-            **/bootstrap/cache/*
-            !bootstrap/cache/.gitignore
-            **/.idea/**
-            **/.vscode/**
-            **/*.md
-            **/.gitignore
-            **/.env.example
-            **/phpunit.xml
-            **/.phpunit.result.cache
+      - name: 📂 Install lftp for SFTP
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: 📂 Sync files to server via SFTP
+        env:
+          SFTP_SERVER: ${{ secrets.FTP_SERVER }}
+          SFTP_USER: ${{ secrets.FTP_USERNAME }}
+          SFTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          SFTP_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          lftp -c "
+          set sftp:auto-confirm yes
+          set sftp:connect-program 'ssh -a -x -oStrictHostKeyChecking=no'
+          open -u $SFTP_USER,$SFTP_PASS sftp://$SFTP_SERVER
+          cd $SFTP_DIR
+          mirror --reverse --delete --verbose --exclude-glob .git* --exclude-glob node_modules --exclude-glob .env* --exclude-glob tests --exclude-glob storage/logs --exclude-glob storage/framework/cache --exclude-glob storage/framework/sessions --exclude-glob storage/framework/views --exclude-glob bootstrap/cache --exclude-glob .idea --exclude-glob .vscode --exclude-glob *.md --exclude-glob .gitignore --exclude-glob .env.example --exclude-glob phpunit.xml --exclude-glob .phpunit.result.cache
+          quit
+          "
