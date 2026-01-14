@@ -64,6 +64,11 @@ php artisan migrate --force
 
 Anders kun je dit lokaal doen en de database direct op de server aanpassen, of gebruik een database management tool zoals phpMyAdmin.
 
+**Belangrijk:** Na een nieuwe deployment met nieuwe migraties (zoals de imports tabellen), moet je altijd migraties uitvoeren:
+```bash
+php artisan migrate --force
+```
+
 ### 6. Storage link aanmaken (optioneel)
 
 Als je publieke bestanden wilt serveren:
@@ -79,6 +84,25 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 ```
+
+### 8. Queue configuratie voor CSV imports
+
+Filament imports worden standaard via de queue verwerkt. Je hebt twee opties:
+
+**Optie A: Queue worker draaien (aanbevolen voor productie)**
+- Zorg dat er een queue worker actief is op de server
+- Je kunt dit doen via een cron job of supervisor
+- Voor TransIP kun je een cron job instellen die elke minuut draait:
+  ```bash
+  * * * * * cd /path/to/your/app && php artisan queue:work --once --tries=3
+  ```
+
+**Optie B: Queue driver op "sync" zetten (voor kleine imports)**
+- Voeg toe aan je `.env` bestand:
+  ```env
+  QUEUE_CONNECTION=sync
+  ```
+- Dit verwerkt imports direct zonder queue worker (alleen geschikt voor kleine imports)
 
 ## Troubleshooting
 
