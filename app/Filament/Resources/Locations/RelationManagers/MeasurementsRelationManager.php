@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Locations\RelationManagers;
 
+use App\Filament\Imports\MeasurementImporter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ImportAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -141,6 +143,9 @@ class MeasurementsRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
+                ImportAction::make()
+                    ->importer(MeasurementImporter::class)
+                    ->options(['location_id' => $this->getOwnerRecord()->getKey()]),
                 CreateAction::make(),
             ])
             ->actions([

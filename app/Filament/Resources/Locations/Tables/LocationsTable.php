@@ -23,14 +23,10 @@ class LocationsTable
                     ->searchable(),
                 TextColumn::make('latitude')
                     ->numeric()
-                    ->sortable()
-                    ->maxValue(90)
-                    ->minValue(-90),
+                    ->sortable(),
                 TextColumn::make('longitude')
                     ->numeric()
-                    ->sortable()
-                    ->maxValue(180)
-                    ->minValue(-180),
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
