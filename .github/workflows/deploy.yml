@@ -37,6 +37,9 @@ jobs:
       - name: 🔨 Build assets
         run: npm run build
 
+      - name: 🔧 Generate service provider cache
+        run: php artisan package:discover --ansi
+
       - name: 🗑️ Clean up unnecessary files
         run: |
           rm -rf node_modules
@@ -112,7 +115,8 @@ jobs:
             --exclude-glob storage/framework/cache/* \
             --exclude-glob storage/framework/sessions/* \
             --exclude-glob storage/framework/views/* \
-            --exclude-glob bootstrap/cache/* \
+            --exclude-glob bootstrap/cache/config.php \
+            --exclude-glob bootstrap/cache/routes-*.php \
             --exclude-glob .idea \
             --exclude-glob .vscode \
             --exclude-glob *.md \
