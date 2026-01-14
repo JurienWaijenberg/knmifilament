@@ -71,17 +71,20 @@ jobs:
           SFTP_PASS: ${{ secrets.FTP_PASSWORD }}
           SFTP_DIR: ${{ secrets.FTP_SERVER_DIR }}
         run: |
-          echo "📁 Ensuring directory $SFTP_DIR exists..."
+          echo "📁 Ensuring directory structure exists..."
           lftp -c "
           set sftp:auto-confirm yes
           set sftp:connect-program 'ssh -a -x -oStrictHostKeyChecking=no'
           set net:timeout 30
           open -u $SFTP_USER,$SFTP_PASS sftp://$SFTP_SERVER
-          cd /subsites || mkdir /subsites
+          pwd
+          mkdir /subsites
           cd /subsites
-          cd knmi.waijenbergmedia.nl || mkdir knmi.waijenbergmedia.nl
+          mkdir knmi.waijenbergmedia.nl
+          cd knmi.waijenbergmedia.nl
+          pwd
           quit
-          " || echo "⚠️ Directory creation attempted"
+          " 2>&1 | grep -v "already exists" || true
 
       - name: 📂 Sync files to server via SFTP
         env:
@@ -100,11 +103,14 @@ jobs:
           set net:reconnect-interval-base 5
           set net:reconnect-interval-multiplier 1
           open -u $SFTP_USER,$SFTP_PASS sftp://$SFTP_SERVER
+          mkdir /subsites
           cd /subsites
+          mkdir knmi.waijenbergmedia.nl
           cd knmi.waijenbergmedia.nl
           mirror --reverse \
             --delete \
-            --checksum \
+            --only-newer \
+            --ignore-time \
             --verbose \
             --parallel=5 \
             --exclude-glob .git* \
