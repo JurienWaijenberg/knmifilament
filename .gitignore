@@ -54,7 +54,6 @@ Thumbs.db
 # Build files
 /public/build
 /public/mix-manifest.json
-/public/.htaccess
 
 # Testing
 /.phpunit.cache
