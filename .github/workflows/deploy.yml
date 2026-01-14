@@ -104,7 +104,7 @@ jobs:
           cd knmi.waijenbergmedia.nl
           mirror --reverse \
             --delete \
-            --only-newer \
+            --checksum \
             --verbose \
             --parallel=5 \
             --exclude-glob .git* \

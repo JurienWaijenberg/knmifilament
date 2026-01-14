@@ -21,7 +21,12 @@ Zorg ervoor dat de **Document Root** in je TransIP controlepaneel verwijst naar 
    APP_ENV=production
    APP_KEY=base64:JE_MOET_HIER_EEN_KEY_GENEREREN
    APP_DEBUG=false
-   APP_URL=https://jouw-domein.nl
+   APP_URL=https://knmi.waijenbergmedia.nl
+   
+   # Session configuratie voor HTTPS
+   SESSION_DRIVER=database
+   SESSION_SECURE_COOKIE=true
+   SESSION_SAME_SITE=lax
    
    DB_CONNECTION=mysql
    DB_HOST=127.0.0.1
@@ -94,6 +99,21 @@ php artisan view:cache
 - Controleer database credentials in `.env`
 - Zorg dat de database bestaat in TransIP controlepaneel
 - Controleer of `DB_HOST` correct is (meestal `127.0.0.1` of `localhost`)
+
+### "403 Forbidden" na login
+Dit is meestal een CSRF token probleem. Zorg ervoor dat in je `.env` bestand:
+- `APP_URL=https://knmi.waijenbergmedia.nl` (exact deze URL, met https://)
+- `SESSION_SECURE_COOKIE=true` (verplicht voor HTTPS)
+- `SESSION_DRIVER=database` (aanbevolen voor productie)
+- `SESSION_SAME_SITE=lax`
+
+Na het aanpassen van `.env`, clear de config cache:
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+**Belangrijk:** De `TrustProxies` middleware is al geconfigureerd in `bootstrap/app.php` om correct te werken achter een proxy/load balancer.
 
 ## Belangrijke bestanden die NIET geüpload worden
 
