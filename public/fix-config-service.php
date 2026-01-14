@@ -61,57 +61,39 @@ if (!is_dir($bootstrapCache)) {
 chmod($bootstrapCache, 0755);
 echo "✅ Bootstrap cache directory is writable<br>";
 
-// Try to regenerate using artisan commands via exec
-echo "<h2>4. Regenerating Service Provider Cache</h2>";
-chdir($basePath);
-
-// Try to run composer dump-autoload
-$composerPath = $basePath . '/vendor/bin/composer';
-if (file_exists($composerPath)) {
-    $output = [];
-    $returnVar = 0;
-    exec('php ' . escapeshellarg($composerPath) . ' dump-autoload --no-interaction 2>&1', $output, $returnVar);
-    if ($returnVar === 0) {
-        echo "✅ Composer dump-autoload successful<br>";
-    } else {
-        echo "⚠️ Composer dump-autoload had issues<br>";
-    }
+// Find PHP binary path
+echo "<h2>4. Finding PHP Binary</h2>";
+$phpBinary = PHP_BINARY;
+if (defined('PHP_BINARY') && PHP_BINARY) {
+    $phpBinary = PHP_BINARY;
 } else {
-    echo "⚠️ Composer binary not found<br>";
-}
-
-// Try to run artisan commands
-$artisanPath = $basePath . '/artisan';
-if (file_exists($artisanPath)) {
-    // Try config:clear
-    $output = [];
-    $returnVar = 0;
-    exec('php ' . escapeshellarg($artisanPath) . ' config:clear 2>&1', $output, $returnVar);
-    if ($returnVar === 0) {
-        echo "✅ Config cache cleared<br>";
+    // Try common paths
+    $possiblePaths = ['/usr/bin/php', '/usr/local/bin/php', '/opt/php/bin/php', 'php'];
+    foreach ($possiblePaths as $path) {
+        $output = [];
+        $returnVar = 0;
+        exec($path . ' -v 2>&1', $output, $returnVar);
+        if ($returnVar === 0) {
+            $phpBinary = $path;
+            break;
+        }
     }
-    
-    // Try package:discover
-    $output = [];
-    $returnVar = 0;
-    exec('php ' . escapeshellarg($artisanPath) . ' package:discover 2>&1', $output, $returnVar);
-    if ($returnVar === 0) {
-        echo "✅ Package discovery successful<br>";
-    }
-} else {
-    echo "⚠️ Artisan file not found<br>";
 }
+echo "Using PHP: <code>" . htmlspecialchars($phpBinary) . "</code><br>";
 
 // Try to regenerate services.php and packages.php
 echo "<h2>5. Regenerating services.php and packages.php</h2>";
 $servicesCache = $basePath . '/bootstrap/cache/services.php';
 $packagesCache = $basePath . '/bootstrap/cache/packages.php';
+$artisanPath = $basePath . '/artisan';
 
-// Try artisan package:discover first
+// Try artisan package:discover
 if (file_exists($artisanPath)) {
+    chdir($basePath);
     $output = [];
     $returnVar = 0;
-    exec('cd ' . escapeshellarg($basePath) . ' && php artisan package:discover --ansi 2>&1', $output, $returnVar);
+    $command = escapeshellarg($phpBinary) . ' ' . escapeshellarg($artisanPath) . ' package:discover --ansi 2>&1';
+    exec($command, $output, $returnVar);
     if ($returnVar === 0) {
         echo "✅ Package discovery successful<br>";
         if (file_exists($servicesCache)) {
@@ -123,14 +105,49 @@ if (file_exists($artisanPath)) {
     } else {
         echo "⚠️ Package discovery failed. Output:<br>";
         echo "<pre>" . htmlspecialchars(implode("\n", $output)) . "</pre>";
+        echo "<br>Trying alternative method...<br>";
+        
+        // Alternative: Try to bootstrap Laravel manually and generate cache
+        echo "<h2>6. Alternative: Manual Cache Generation</h2>";
+        
+        // Read providers.php
+        $providersFile = $basePath . '/bootstrap/providers.php';
+        if (file_exists($providersFile)) {
+            $appProviders = require $providersFile;
+            echo "✅ Found providers.php with " . count($appProviders) . " providers<br>";
+            
+            // Try to generate services.php by bootstrapping Laravel
+            try {
+                // Load Composer autoloader
+                $autoloader = $basePath . '/vendor/autoload.php';
+                if (file_exists($autoloader)) {
+                    require_once $autoloader;
+                    
+                    // Try to create application instance
+                    $app = require_once $basePath . '/bootstrap/app.php';
+                    
+                    // This should trigger service provider discovery
+                    $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
+                    
+                    if (file_exists($servicesCache)) {
+                        echo "✅ services.php generated via Laravel bootstrap<br>";
+                    }
+                }
+            } catch (Exception $e) {
+                echo "⚠️ Bootstrap failed: " . htmlspecialchars($e->getMessage()) . "<br>";
+            }
+        }
     }
+} else {
+    echo "⚠️ Artisan file not found<br>";
 }
 
-// If services.php still doesn't exist, we need to manually bootstrap Laravel
+// Final check
 if (!file_exists($servicesCache)) {
-    echo "<h2>6. Manual Bootstrap (if needed)</h2>";
-    echo "⚠️ services.php still missing. This might require manual intervention.<br>";
-    echo "Try running: <code>php artisan package:discover</code> via SSH if available.<br>";
+    echo "<h2>7. Manual Upload Required</h2>";
+    echo "⚠️ services.php still missing. You need to upload it manually.<br>";
+    echo "<p><strong>Solution:</strong> Upload <code>bootstrap/cache/services.php</code> and <code>bootstrap/cache/packages.php</code> from your local project to the server.</p>";
+    echo "<p>Or trigger a new deployment - the workflow has been updated to include these files.</p>";
 }
 
 echo "<br><strong>✅ Fix applied! Try visiting your website now.</strong><br>";
