@@ -18,12 +18,20 @@ class LocationImporter extends Importer
         return [
             ImportColumn::make('city')
                 ->label('City Name')
+                ->guess(['City', 'city'])
                 ->rules(['required', 'string', 'max:255'])
+                ->fillRecordUsing(function (Location $record, string $state): void {
+                    // Don't set city directly - we'll set city_id in afterFill()
+                    // This prevents Filament from trying to set $record->city
+                })
                 ->example('Amsterdam'),
             ImportColumn::make('name')
+                ->label('Location Name')
+                ->guess(['Location', 'location', 'name'])
                 ->rules(['required', 'string', 'max:255'])
                 ->example('Central Station'),
             ImportColumn::make('latitude')
+                ->guess(['Latitude', 'latitude'])
                 ->castStateUsing(function (string $state): ?float {
                     if (blank($state)) {
                         return null;
@@ -37,6 +45,7 @@ class LocationImporter extends Importer
                 ->rules(['required', 'numeric', 'between:-90,90'])
                 ->example('52.3676'),
             ImportColumn::make('longitude')
+                ->guess(['Longitude', 'longitude'])
                 ->castStateUsing(function (string $state): ?float {
                     if (blank($state)) {
                         return null;
@@ -50,6 +59,7 @@ class LocationImporter extends Importer
                 ->rules(['required', 'numeric', 'between:-180,180'])
                 ->example('4.9041'),
             ImportColumn::make('description')
+                ->guess(['Description', 'description'])
                 ->rules(['nullable', 'string'])
                 ->example('Main measurement location'),
         ];
@@ -57,15 +67,27 @@ class LocationImporter extends Importer
 
     public function resolveRecord(): ?Location
     {
-        // Find city
-        $city = Cities::where('name', $this->data['city'])->first();
+        // Find city (using 'city' column from CSV, which user maps from 'City' header)
+        $cityName = $this->data['city'] ?? null;
+
+        if (! $cityName) {
+            return null;
+        }
+
+        $city = Cities::where('name', $cityName)->first();
 
         if (! $city) {
             return null;
         }
 
         // Check if location already exists - if so, skip (return null)
-        $existing = Location::where('name', $this->data['name'])
+        $locationName = $this->data['name'] ?? null;
+
+        if (! $locationName) {
+            return null;
+        }
+
+        $existing = Location::where('name', $locationName)
             ->where('city_id', $city->id)
             ->first();
 
@@ -95,11 +117,19 @@ class LocationImporter extends Importer
     {
         // city_id is already set in resolveRecord(), but ensure it's set here too as fallback
         if (! $this->record->city_id) {
-            $city = Cities::where('name', $this->data['city'])->first();
+            $cityName = $this->data['city'] ?? null;
 
-            if ($city) {
-                $this->record->city_id = $city->id;
+            if ($cityName) {
+                $city = Cities::where('name', $cityName)->first();
+
+                if ($city) {
+                    $this->record->city_id = $city->id;
+                }
             }
         }
+
+        // Remove 'city' from data since it's not a model attribute (we use city_id instead)
+        // This prevents Filament from trying to set $this->record->city
+        unset($this->data['city']);
     }
 }
