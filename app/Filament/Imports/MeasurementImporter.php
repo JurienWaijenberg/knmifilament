@@ -75,22 +75,31 @@ class MeasurementImporter extends Importer
             $locationId = $location->id;
         }
 
-        // Try to find existing measurement or create new
-        return Measurement::firstOrNew([
-            'location_id' => $locationId,
-            'tube_id' => $this->data['tube_id'],
-            'month' => $this->data['month'],
-            'year' => $this->data['year'],
-            'start_date' => $this->data['start_date'],
-        ]);
+        // Check if measurement already exists - if so, skip (return null)
+        $existing = Measurement::where('location_id', $locationId)
+            ->where('tube_id', $this->data['tube_id'])
+            ->where('month', $this->data['month'])
+            ->where('year', $this->data['year'])
+            ->where('start_date', $this->data['start_date'])
+            ->first();
+
+        if ($existing) {
+            return null; // Skip duplicate
+        }
+
+        // Create new measurement with location_id set immediately
+        $measurement = new Measurement;
+        $measurement->location_id = $locationId;
+
+        return $measurement;
     }
 
     public static function getCompletedNotificationBody(Import $import): string
     {
-        $body = 'Your measurement import has completed and ' . Number::format($import->successful_rows) . ' ' . str('row')->plural($import->successful_rows) . ' imported.';
+        $body = 'Your measurement import has completed and '.Number::format($import->successful_rows).' '.str('row')->plural($import->successful_rows).' imported.';
 
         if ($failedRowsCount = $import->getFailedRowsCount()) {
-            $body .= ' ' . Number::format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to import.';
+            $body .= ' '.Number::format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to import.';
         }
 
         return $body;

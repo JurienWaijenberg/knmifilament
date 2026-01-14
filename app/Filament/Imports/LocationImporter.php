@@ -28,10 +28,10 @@ class LocationImporter extends Importer
                     if (blank($state)) {
                         return null;
                     }
-                    
+
                     // Convert comma to dot for decimal separator (European format)
                     $state = str_replace(',', '.', $state);
-                    
+
                     return (float) $state;
                 })
                 ->rules(['required', 'numeric', 'between:-90,90'])
@@ -41,10 +41,10 @@ class LocationImporter extends Importer
                     if (blank($state)) {
                         return null;
                     }
-                    
+
                     // Convert comma to dot for decimal separator (European format)
                     $state = str_replace(',', '.', $state);
-                    
+
                     return (float) $state;
                 })
                 ->rules(['required', 'numeric', 'between:-180,180'])
@@ -57,25 +57,35 @@ class LocationImporter extends Importer
 
     public function resolveRecord(): ?Location
     {
-        // Try to find existing location by name and city, or create new
+        // Find city
         $city = Cities::where('name', $this->data['city'])->first();
 
         if (! $city) {
             return null;
         }
 
-        return Location::firstOrNew([
-            'name' => $this->data['name'],
-            'city_id' => $city->id,
-        ]);
+        // Check if location already exists - if so, skip (return null)
+        $existing = Location::where('name', $this->data['name'])
+            ->where('city_id', $city->id)
+            ->first();
+
+        if ($existing) {
+            return null; // Skip duplicate
+        }
+
+        // Create new location with city_id set immediately
+        $location = new Location;
+        $location->city_id = $city->id;
+
+        return $location;
     }
 
     public static function getCompletedNotificationBody(Import $import): string
     {
-        $body = 'Your location import has completed and ' . Number::format($import->successful_rows) . ' ' . str('row')->plural($import->successful_rows) . ' imported.';
+        $body = 'Your location import has completed and '.Number::format($import->successful_rows).' '.str('row')->plural($import->successful_rows).' imported.';
 
         if ($failedRowsCount = $import->getFailedRowsCount()) {
-            $body .= ' ' . Number::format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to import.';
+            $body .= ' '.Number::format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to import.';
         }
 
         return $body;
@@ -83,11 +93,13 @@ class LocationImporter extends Importer
 
     protected function afterFill(): void
     {
-        // Set city_id from city name lookup
-        $city = Cities::where('name', $this->data['city'])->first();
+        // city_id is already set in resolveRecord(), but ensure it's set here too as fallback
+        if (! $this->record->city_id) {
+            $city = Cities::where('name', $this->data['city'])->first();
 
-        if ($city) {
-            $this->record->city_id = $city->id;
+            if ($city) {
+                $this->record->city_id = $city->id;
+            }
         }
     }
 }
